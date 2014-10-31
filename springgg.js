@@ -290,7 +290,7 @@ function keyboard(ev) {
     ctx.transform(1, 0, 0, 1, 0, g_gridsize);
   } else if (ev.keyCode == 118 || ev.key == 'v') { // v
     g_com.x += g_gridsize;
-    update_km_pos();
+    sum_forces();
   } else if (ev.keyCode == 98 || ev.key == 'b') { // b
     cycle();
   } else if (ev.keyCode == 122 || ev.key == 'z') {
@@ -316,7 +316,7 @@ function cycle() {
   trace(A);
   if (highF > 0) {
     if (can_lift(A)) {
-      while (g_feet[A].Fx > -100) {
+      while (g_feet[A].Fx > -200) {
         g_feet[A].x += g_gridsize;
         sum_forces();
       }
@@ -390,43 +390,46 @@ function start() {
 
 //------------------------------- global stuff ---------------------------------
 var cv, ctx;
+var feetd = Math.floor((3.8+7.35-1)*20);
 var g_feet = [
-  {"x":150, "y":150, "Fx":0, "Fy":0},
-  {"x":-150, "y":150, "Fx":0, "Fy":0},
-  {"x":-150, "y":-150, "Fx":0, "Fy":0},
-  {"x":150, "y":-150, "Fx":0, "Fy":0}];
+  {"x":feetd, "y":feetd+20, "Fx":0, "Fy":0},
+  {"x":-feetd, "y":feetd+20, "Fx":0, "Fy":0},
+  {"x":-feetd, "y":-feetd-20, "Fx":0, "Fy":0},
+  {"x":feetd, "y":-feetd-20, "Fx":0, "Fy":0}];
 var g_com = {"x":0, "y":0, "Fx":0, "Fy":0};
-var bodysize = 80;
-var ras = 175;
+// flipped x,y bodysizes for now
+var bodysizey = 76;
+var bodysizex = 116;
+var ras = 260;
 var g_km = [
   // 0..3 are the leg connection points to the body
-  {"x":0, "y":0, "Fx":0, "Fy":0, "dx":bodysize, "dy":bodysize},
-  {"x":0, "y":0, "Fx":0, "Fy":0, "dx":-bodysize, "dy":bodysize},
-  {"x":0, "y":0, "Fx":0, "Fy":0, "dx":-bodysize, "dy":-bodysize},
-  {"x":0, "y":0, "Fx":0, "Fy":0, "dx":bodysize, "dy":-bodysize},
+  {"x":0, "y":0, "Fx":0, "Fy":0, "dx":bodysizex, "dy":bodysizey},
+  {"x":0, "y":0, "Fx":0, "Fy":0, "dx":-bodysizex, "dy":bodysizey},
+  {"x":0, "y":0, "Fx":0, "Fy":0, "dx":-bodysizex, "dy":-bodysizey},
+  {"x":0, "y":0, "Fx":0, "Fy":0, "dx":bodysizex, "dy":-bodysizey},
   // rest are to limit leg reachable area
-  {"x":0, "y":0, "Fx":0, "Fy":0, "dx":bodysize+ras, "dy":bodysize},
-  {"x":0, "y":0, "Fx":0, "Fy":0, "dx":bodysize, "dy":bodysize+ras},
+  {"x":0, "y":0, "Fx":0, "Fy":0, "dx":bodysizex+ras, "dy":bodysizey},
+  {"x":0, "y":0, "Fx":0, "Fy":0, "dx":bodysizex, "dy":bodysizey+ras},
   {"x":0, "y":0, "Fx":0, "Fy":0, 
-  "dx":bodysize+ras*Math.SQRT1_2, "dy":bodysize+ras*Math.SQRT1_2},
+  "dx":bodysizex+ras*Math.SQRT1_2, "dy":bodysizey+ras*Math.SQRT1_2},
   
-  {"x":0, "y":0, "Fx":0, "Fy":0, "dx":-bodysize-ras, "dy":bodysize},
-  {"x":0, "y":0, "Fx":0, "Fy":0, "dx":-bodysize, "dy":bodysize+ras},
+  {"x":0, "y":0, "Fx":0, "Fy":0, "dx":-bodysizex-ras, "dy":bodysizey},
+  {"x":0, "y":0, "Fx":0, "Fy":0, "dx":-bodysizex, "dy":bodysizey+ras},
   {"x":0, "y":0, "Fx":0, "Fy":0, 
-  "dx":-bodysize-ras*Math.SQRT1_2, "dy":bodysize+ras*Math.SQRT1_2},
+  "dx":-bodysizex-ras*Math.SQRT1_2, "dy":bodysizey+ras*Math.SQRT1_2},
   
-  {"x":0, "y":0, "Fx":0, "Fy":0, "dx":-bodysize-ras, "dy":-bodysize},
-  {"x":0, "y":0, "Fx":0, "Fy":0, "dx":-bodysize, "dy":-bodysize-ras},
+  {"x":0, "y":0, "Fx":0, "Fy":0, "dx":-bodysizex-ras, "dy":-bodysizey},
+  {"x":0, "y":0, "Fx":0, "Fy":0, "dx":-bodysizex, "dy":-bodysizey-ras},
   {"x":0, "y":0, "Fx":0, "Fy":0, 
-  "dx":-bodysize-ras*Math.SQRT1_2, "dy":-bodysize-ras*Math.SQRT1_2},
+  "dx":-bodysizex-ras*Math.SQRT1_2, "dy":-bodysizey-ras*Math.SQRT1_2},
   
-  {"x":0, "y":0, "Fx":0, "Fy":0, "dx":bodysize+ras, "dy":-bodysize},
-  {"x":0, "y":0, "Fx":0, "Fy":0, "dx":bodysize, "dy":-bodysize-ras},
+  {"x":0, "y":0, "Fx":0, "Fy":0, "dx":bodysizex+ras, "dy":-bodysizey},
+  {"x":0, "y":0, "Fx":0, "Fy":0, "dx":bodysizex, "dy":-bodysizey-ras},
   {"x":0, "y":0, "Fx":0, "Fy":0, 
-  "dx":bodysize+ras*Math.SQRT1_2, "dy":-bodysize-ras*Math.SQRT1_2},
+  "dx":bodysizex+ras*Math.SQRT1_2, "dy":-bodysizey-ras*Math.SQRT1_2},
 ];
 update_km_pos();
-var kmk = 0.5;
+var kmk = 0.90;
 var g_springs = [
   // feet to feet springs
   {"a":g_feet[0], "b":g_feet[2], "K":1, "x0":0, "c":"green"},
@@ -436,10 +439,10 @@ var g_springs = [
   {"a":g_feet[2], "b":g_feet[3], "K":1, "x0":0, "c":"green"},
   {"a":g_feet[3], "b":g_feet[0], "K":1, "x0":0, "c":"green"},
   // feet to km springs
-  {"a":g_km[0], "b":g_feet[0], "K":kmk, "x0":0, "c":"blue"},
-  {"a":g_km[1], "b":g_feet[1], "K":kmk, "x0":0, "c":"blue"},
-  {"a":g_km[2], "b":g_feet[2], "K":kmk, "x0":0, "c":"blue"},
-  {"a":g_km[3], "b":g_feet[3], "K":kmk, "x0":0, "c":"blue"},
+  {"a":g_km[0], "b":g_feet[0], "K":1, "x0":0, "c":"blue"},
+  {"a":g_km[1], "b":g_feet[1], "K":1, "x0":0, "c":"blue"},
+  {"a":g_km[2], "b":g_feet[2], "K":1, "x0":0, "c":"blue"},
+  {"a":g_km[3], "b":g_feet[3], "K":1, "x0":0, "c":"blue"},
   
   {"a":g_km[4], "b":g_feet[0], "K":kmk, "x0":0, "c":"blue"},
   {"a":g_km[5], "b":g_feet[0], "K":kmk, "x0":0, "c":"blue"},
@@ -458,7 +461,7 @@ var g_springs = [
   {"a":g_km[15], "b":g_feet[3], "K":kmk, "x0":0, "c":"blue"}];
 for (var s, i = 0; s = g_springs[i]; ++i) { zero_force(s); }
 var g_transform = {"x":300, "y":300};
-var g_gridsize = 10;
+var g_gridsize = 5;
 var g_selection = -1;
 var g_move_listener = -1;
 var g_previous = -1;
