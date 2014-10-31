@@ -291,8 +291,13 @@ function keyboard(ev) {
   } else if (ev.keyCode == 118 || ev.key == 'v') { // v
     g_com.x += g_gridsize;
     sum_forces();
+  } else if (ev.keyCode == 86 || ev.key == 'V') {
+    g_com.x -= g_gridsize;
+    sum_forces();
   } else if (ev.keyCode == 98 || ev.key == 'b') { // b
     cycle();
+  } else if (ev.keyCode == 66 || ev.key == 'B') {
+    cyclereverse();
   } else if (ev.keyCode == 122 || ev.key == 'z') {
     for (var s, i = 0; s = g_springs[i]; ++i) { zero_force(s); }
     sum_forces();
@@ -305,15 +310,14 @@ function keyboard(ev) {
 //------------------------------------------------------------------------------
 function cycle() {
   // movdir = x
-  highF = 0;
-  A = -1;
+  var highF = 0;
+  var A = -1;
   for (var f, i = 0; f = g_feet[i]; ++i) {
     if (f.Fx > highF) {
       highF = f.Fx;
       A = i;
     }
   }
-  trace(A);
   if (highF > 0) {
     if (can_lift(A)) {
       while (g_feet[A].Fx > -200) {
@@ -326,6 +330,27 @@ function cycle() {
   }
   redraw();
 }
+
+function cyclereverse() {
+    // movedir = -x
+  var lowF = 0;
+  var A = -1;
+  for (var f, i = 0; f = g_feet[i]; ++i) {
+    if (f.Fx < lowF) {
+      lowF = f.Fx;
+      A = i;
+    }
+  }
+  if (lowF < 0) {
+    if (can_lift(A)) {
+      while (g_feet[A].Fx < 200) {
+        g_feet[A].x -= g_gridsize;
+        sum_forces();
+      }
+    } 
+  }
+  redraw();
+}   
 
 //------------------------------------------------------------------------------
 //                                                                      CAN LIFT
@@ -429,7 +454,7 @@ var g_km = [
   "dx":bodysizex+ras*Math.SQRT1_2, "dy":-bodysizey-ras*Math.SQRT1_2},
 ];
 update_km_pos();
-var kmk = 0.90;
+var kmk = 1;
 var g_springs = [
   // feet to feet springs
   {"a":g_feet[0], "b":g_feet[2], "K":1, "x0":0, "c":"green"},
@@ -439,10 +464,10 @@ var g_springs = [
   {"a":g_feet[2], "b":g_feet[3], "K":1, "x0":0, "c":"green"},
   {"a":g_feet[3], "b":g_feet[0], "K":1, "x0":0, "c":"green"},
   // feet to km springs
-  {"a":g_km[0], "b":g_feet[0], "K":1, "x0":0, "c":"blue"},
-  {"a":g_km[1], "b":g_feet[1], "K":1, "x0":0, "c":"blue"},
-  {"a":g_km[2], "b":g_feet[2], "K":1, "x0":0, "c":"blue"},
-  {"a":g_km[3], "b":g_feet[3], "K":1, "x0":0, "c":"blue"},
+  {"a":g_km[0], "b":g_feet[0], "K":3, "x0":0, "c":"blue"},
+  {"a":g_km[1], "b":g_feet[1], "K":3, "x0":0, "c":"blue"},
+  {"a":g_km[2], "b":g_feet[2], "K":3, "x0":0, "c":"blue"},
+  {"a":g_km[3], "b":g_feet[3], "K":3, "x0":0, "c":"blue"},
   
   {"a":g_km[4], "b":g_feet[0], "K":kmk, "x0":0, "c":"blue"},
   {"a":g_km[5], "b":g_feet[0], "K":kmk, "x0":0, "c":"blue"},
