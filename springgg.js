@@ -91,17 +91,48 @@ function draw_com() {
 }
 
 //------------------------------------------------------------------------------
-//                                                                  DRAW SPRINGS
+//                                                                    SUM FORCES
 //------------------------------------------------------------------------------
-function draw_springs() {
-  var dx, dy, F, Fx, Fy;
+function sum_forces() {
+  update_km_pos();
   // clear forces on feet
   for (var f, i = 0; f = g_feet[i]; ++i) {
     f.Fx = 0;
     f.Fy = 0;
   }
-  g_com.Fx = 0;
-  g_com.Fy = 0;
+  // clear forces on km
+  for (var kmp, i = 0; kmp = g_km[i]; ++i) {
+    kmp.Fx = 0;
+    kmp.Fy = 0;
+  }
+  // loop through all springs
+  for (var s, i = 0; s = g_springs[i]; ++i) {
+    // the distance between the two connection points of the spring
+    dx = s.b.x - s.a.x;
+    dy = s.b.y - s.a.y;
+    s.x = Math.sqrt(dy*dy + dx*dx);
+    // the resulting force from this spring
+    F = (s.x-s.x0) * -s.K;
+    // project on x and y axis
+    Fx = Math.cos(get_angle(0,0, dx, dy)) * F;
+    Fy = Math.sin(get_angle(0,0, dx, dy)) * -F;
+    // add to each point
+    s.a.Fx -= Fx;
+    s.b.Fx += Fx;
+    s.a.Fy -= Fy;
+    s.b.Fy += Fy;
+  }
+  // forces on com are collection of forces on leg connection points
+  g_com.Fx = g_km[0].Fx + g_km[1].Fx + g_km[2].Fx + g_km[3].Fx;
+  g_com.Fy = g_km[0].Fy + g_km[1].Fy + g_km[2].Fy + g_km[3].Fy;
+  
+}
+
+//------------------------------------------------------------------------------
+//                                                                  DRAW SPRINGS
+//------------------------------------------------------------------------------
+function draw_springs() {
+  var dx, dy, F;
   // update springs and forces (also, draw them)
   for (var s, i = 0; s = g_springs[i]; ++i) {
     ctx.beginPath();
@@ -111,15 +142,7 @@ function draw_springs() {
     ctx.stroke();
     dx = s.b.x - s.a.x;
     dy = s.b.y - s.a.y;
-    s.x = Math.sqrt(dy*dy + dx*dx);
-    // add forces to feet
     F = (s.x-s.x0) * -s.K;
-    Fx = Math.cos(get_angle(0,0, dx, dy)) * F;
-    Fy = Math.sin(get_angle(0,0, dx, dy)) * -F;
-    s.a.Fx -= Fx;
-    s.b.Fx += Fx;
-    s.a.Fy -= Fy;
-    s.b.Fy += Fy;
     ctx.fillStyle = s.c;
     ctx.fillText(
       Math.floor(F), s.a.x + dx*0.25 + 16, s.a.y + dy*0.25 + 18);
@@ -152,6 +175,16 @@ function draw_forces() {
 }
 
 //------------------------------------------------------------------------------
+//                                                                      DRAW KMP
+//------------------------------------------------------------------------------
+function draw_kmp() {
+  for (var kmp, i = 0; kmp = g_km[i]; ++i) {
+    ctx.strokeStyle = "orange";
+    ctx.strokeRect(kmp.x - 5, kmp.y - 5, 10, 10);
+  }
+}
+
+//------------------------------------------------------------------------------
 //                                                                         CLEAR
 //------------------------------------------------------------------------------
 function clear() {
@@ -167,6 +200,7 @@ function redraw() {
   draw_springs();
   draw_feet();
   draw_com();
+  draw_kmp();
   draw_forces();
 }
 
@@ -231,6 +265,7 @@ function cv_move(ev) {
     g_com.x = round_to_gridsize(x);
     g_com.y = round_to_gridsize(y);
   }
+  sum_forces();
   redraw();
   //cycle();
 }
@@ -255,12 +290,12 @@ function keyboard(ev) {
     ctx.transform(1, 0, 0, 1, 0, g_gridsize);
   } else if (ev.keyCode == 118 || ev.key == 'v') { // v
     g_com.x += g_gridsize;
+    update_km_pos();
   } else if (ev.keyCode == 98 || ev.key == 'b') { // b
-    redraw();
     cycle();
   } else if (ev.keyCode == 122 || ev.key == 'z') {
     for (var s, i = 0; s = g_springs[i]; ++i) { zero_force(s); }
-    redraw();
+    sum_forces();
   }
   redraw();
 }
@@ -278,16 +313,18 @@ function cycle() {
       A = i;
     }
   }
+  trace(A);
   if (highF > 0) {
     if (can_lift(A)) {
-      while (g_feet[A].Fx > -50) {
+      while (g_feet[A].Fx > -100) {
         g_feet[A].x += g_gridsize;
-        redraw();
+        sum_forces();
       }
     } else {
       // ... do we even need this?
     }
   }
+  redraw();
 }
 
 //------------------------------------------------------------------------------
@@ -325,6 +362,16 @@ function zero_force(s) {
 }
 
 
+//------------------------------------------------------------------------------
+//                                                                 UPDATE KM POS
+//------------------------------------------------------------------------------
+function update_km_pos() {
+    for (var kmp, i = 0; kmp = g_km[i]; ++i) {
+        kmp.x = g_com.x + kmp.dx;
+        kmp.y = g_com.y + kmp.dy;
+    }
+}
+
 
 //------------------------------------------------------------------------------
 //                                                                         START
@@ -337,6 +384,7 @@ function start() {
         ctx.font = "16px sans-serif";
     window.addEventListener("keypress", keyboard, false);
     trace("start");
+    sum_forces();
     redraw();
 }
 
@@ -348,17 +396,66 @@ var g_feet = [
   {"x":-150, "y":-150, "Fx":0, "Fy":0},
   {"x":150, "y":-150, "Fx":0, "Fy":0}];
 var g_com = {"x":0, "y":0, "Fx":0, "Fy":0};
+var bodysize = 80;
+var ras = 175;
+var g_km = [
+  // 0..3 are the leg connection points to the body
+  {"x":0, "y":0, "Fx":0, "Fy":0, "dx":bodysize, "dy":bodysize},
+  {"x":0, "y":0, "Fx":0, "Fy":0, "dx":-bodysize, "dy":bodysize},
+  {"x":0, "y":0, "Fx":0, "Fy":0, "dx":-bodysize, "dy":-bodysize},
+  {"x":0, "y":0, "Fx":0, "Fy":0, "dx":bodysize, "dy":-bodysize},
+  // rest are to limit leg reachable area
+  {"x":0, "y":0, "Fx":0, "Fy":0, "dx":bodysize+ras, "dy":bodysize},
+  {"x":0, "y":0, "Fx":0, "Fy":0, "dx":bodysize, "dy":bodysize+ras},
+  {"x":0, "y":0, "Fx":0, "Fy":0, 
+  "dx":bodysize+ras*Math.SQRT1_2, "dy":bodysize+ras*Math.SQRT1_2},
+  
+  {"x":0, "y":0, "Fx":0, "Fy":0, "dx":-bodysize-ras, "dy":bodysize},
+  {"x":0, "y":0, "Fx":0, "Fy":0, "dx":-bodysize, "dy":bodysize+ras},
+  {"x":0, "y":0, "Fx":0, "Fy":0, 
+  "dx":-bodysize-ras*Math.SQRT1_2, "dy":bodysize+ras*Math.SQRT1_2},
+  
+  {"x":0, "y":0, "Fx":0, "Fy":0, "dx":-bodysize-ras, "dy":-bodysize},
+  {"x":0, "y":0, "Fx":0, "Fy":0, "dx":-bodysize, "dy":-bodysize-ras},
+  {"x":0, "y":0, "Fx":0, "Fy":0, 
+  "dx":-bodysize-ras*Math.SQRT1_2, "dy":-bodysize-ras*Math.SQRT1_2},
+  
+  {"x":0, "y":0, "Fx":0, "Fy":0, "dx":bodysize+ras, "dy":-bodysize},
+  {"x":0, "y":0, "Fx":0, "Fy":0, "dx":bodysize, "dy":-bodysize-ras},
+  {"x":0, "y":0, "Fx":0, "Fy":0, 
+  "dx":bodysize+ras*Math.SQRT1_2, "dy":-bodysize-ras*Math.SQRT1_2},
+];
+update_km_pos();
+var kmk = 0.5;
 var g_springs = [
+  // feet to feet springs
   {"a":g_feet[0], "b":g_feet[2], "K":1, "x0":0, "c":"green"},
   {"a":g_feet[1], "b":g_feet[3], "K":1, "x0":0, "c":"green"},
   {"a":g_feet[0], "b":g_feet[1], "K":1, "x0":0, "c":"green"},
   {"a":g_feet[1], "b":g_feet[2], "K":1, "x0":0, "c":"green"},
   {"a":g_feet[2], "b":g_feet[3], "K":1, "x0":0, "c":"green"},
   {"a":g_feet[3], "b":g_feet[0], "K":1, "x0":0, "c":"green"},
-  {"a":g_com, "b":g_feet[0], "K":1, "x0":0, "c":"blue"},
-  {"a":g_com, "b":g_feet[1], "K":1, "x0":0, "c":"blue"},
-  {"a":g_com, "b":g_feet[2], "K":1, "x0":0, "c":"blue"},
-  {"a":g_com, "b":g_feet[3], "K":1, "x0":0, "c":"blue"}];
+  // feet to km springs
+  {"a":g_km[0], "b":g_feet[0], "K":kmk, "x0":0, "c":"blue"},
+  {"a":g_km[1], "b":g_feet[1], "K":kmk, "x0":0, "c":"blue"},
+  {"a":g_km[2], "b":g_feet[2], "K":kmk, "x0":0, "c":"blue"},
+  {"a":g_km[3], "b":g_feet[3], "K":kmk, "x0":0, "c":"blue"},
+  
+  {"a":g_km[4], "b":g_feet[0], "K":kmk, "x0":0, "c":"blue"},
+  {"a":g_km[5], "b":g_feet[0], "K":kmk, "x0":0, "c":"blue"},
+  {"a":g_km[6], "b":g_feet[0], "K":kmk, "x0":0, "c":"blue"},
+  
+  {"a":g_km[7], "b":g_feet[1], "K":kmk, "x0":0, "c":"blue"},
+  {"a":g_km[8], "b":g_feet[1], "K":kmk, "x0":0, "c":"blue"},
+  {"a":g_km[9], "b":g_feet[1], "K":kmk, "x0":0, "c":"blue"},
+
+  {"a":g_km[10], "b":g_feet[2], "K":kmk, "x0":0, "c":"blue"},
+  {"a":g_km[11], "b":g_feet[2], "K":kmk, "x0":0, "c":"blue"},
+  {"a":g_km[12], "b":g_feet[2], "K":kmk, "x0":0, "c":"blue"},
+
+  {"a":g_km[13], "b":g_feet[3], "K":kmk, "x0":0, "c":"blue"},
+  {"a":g_km[14], "b":g_feet[3], "K":kmk, "x0":0, "c":"blue"},
+  {"a":g_km[15], "b":g_feet[3], "K":kmk, "x0":0, "c":"blue"}];
 for (var s, i = 0; s = g_springs[i]; ++i) { zero_force(s); }
 var g_transform = {"x":300, "y":300};
 var g_gridsize = 10;
