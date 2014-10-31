@@ -125,6 +125,12 @@ function sum_forces() {
   // forces on com are collection of forces on leg connection points
   g_com.Fx = g_km[0].Fx + g_km[1].Fx + g_km[2].Fx + g_km[3].Fx;
   g_com.Fy = g_km[0].Fy + g_km[1].Fy + g_km[2].Fy + g_km[3].Fy;
+  // torques from pivot connection points
+  g_com.T = // T = r x F
+    cross_product_z(g_km[0].dx, g_km[0].dy, g_km[0].Fx, g_km[0].Fy) + 
+    cross_product_z(g_km[1].dx, g_km[1].dy, g_km[1].Fx, g_km[1].Fy) +
+    cross_product_z(g_km[2].dx, g_km[2].dy, g_km[2].Fx, g_km[2].Fy) +
+    cross_product_z(g_km[3].dx, g_km[3].dy, g_km[3].Fx, g_km[3].Fy);
   
 }
 
@@ -170,8 +176,8 @@ function draw_forces() {
   ctx.lineTo(g_com.x + g_com.Fx, g_com.y + g_com.Fy);
   ctx.stroke();
   ctx.fillText(
-    Math.floor(g_com.Fx) + ", " + Math.floor(g_com.Fy),
-    g_com.x+g_com.Fx+16, g_com.y+g_com.Fy-18);
+    Math.floor(g_com.Fx) + ", " + Math.floor(g_com.Fy) + ", " + 
+    Math.floor(g_com.T*0.001) + "K", g_com.x+g_com.Fx+16, g_com.y+g_com.Fy-18);
 }
 
 //------------------------------------------------------------------------------
@@ -301,6 +307,8 @@ function keyboard(ev) {
   } else if (ev.keyCode == 122 || ev.key == 'z') {
     for (var s, i = 0; s = g_springs[i]; ++i) { zero_force(s); }
     sum_forces();
+  } else if (ev.keyCode == 116 || ev.key == 't') {
+    
   }
   redraw();
 }
@@ -397,6 +405,71 @@ function update_km_pos() {
     }
 }
 
+//------------------------------------------------------------------------------
+//                                                                   ROTATE BODY
+//------------------------------------------------------------------------------
+function zero_torque() {
+  var angle;
+  while (Math.abs(g_com.T) > 1000) {
+    angle = g_com.T > 0? 0.005 : -0.005;
+    rotate_body(angle);
+  }
+  redraw();
+  return g_com.T;
+  
+}
+
+//------------------------------------------------------------------------------
+//                                                                   ROTATE BODY
+//------------------------------------------------------------------------------
+function rotate_body(angle) {
+  for (var kmp, i = 0; kmp = g_km[i]; ++i) {
+    var x = kmp.dx;
+    var y = kmp.dy;
+    kmp.dx = x * Math.cos(angle) - y * Math.sin(angle);
+    kmp.dy = x * Math.sin(angle) + y * Math.cos(angle);
+  }
+  sum_forces();
+}
+
+//------------------------------------------------------------------------------
+//                                                                          lowT
+//------------------------------------------------------------------------------
+function lowT() {
+  var T = g_com.T;
+  var i = 0;
+  var z = 0;
+  var best = -1;
+  while (i < 4) {
+    z = cross_product_z(g_km[i].dx, g_km[i].dy, g_km[i].Fx, g_km[i].Fy);
+    if ((z < T && g_com.T > 0) || (z > T && g_com.T <= 0)) {
+      T = z;
+      best = i;
+    }
+    ++i;
+  }
+  return best;
+}
+
+function rest(index) {
+  var temp_springs = g_springs.slice(0);
+  g_springs = g_springs.slice(6);
+  sum_forces();
+  // move leg till net forces are 0
+  var i = 0;
+  while (Math.abs(g_feet[index].Fx) > 10 || Math.abs(g_feet[index].Fy) > 10) {
+    g_feet[index].Fx > 0? g_feet[index].x += g_gridsize : g_feet[index].x -= g_gridsize;
+    g_feet[index].Fy > 0? g_feet[index].y += g_gridsize : g_feet[index].y -= g_gridsize;
+    sum_forces();
+    ++i;
+    if ( i > 1000) {
+      break;
+    }
+  } 
+  g_springs = temp_springs;
+  sum_forces();
+  redraw();
+}
 
 //------------------------------------------------------------------------------
 //                                                                         START
@@ -421,7 +494,7 @@ var g_feet = [
   {"x":-feetd, "y":feetd+20, "Fx":0, "Fy":0},
   {"x":-feetd, "y":-feetd-20, "Fx":0, "Fy":0},
   {"x":feetd, "y":-feetd-20, "Fx":0, "Fy":0}];
-var g_com = {"x":0, "y":0, "Fx":0, "Fy":0};
+var g_com = {"x":0, "y":0, "Fx":0, "Fy":0, "T":0};
 // flipped x,y bodysizes for now
 var bodysizey = 76;
 var bodysizex = 116;
