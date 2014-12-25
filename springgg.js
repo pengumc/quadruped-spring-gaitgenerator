@@ -335,6 +335,8 @@ function move_to_force(foot_index, Fx, Fy) {
       sum_forces()
     }
   }
+  g_feet[foot_index].x = round_to_gridsize(g_feet[foot_index].x);
+  g_feet[foot_index].y = round_to_gridsize(g_feet[foot_index].y);
 }
 
 //------------------------------------------------------------------------------
@@ -377,6 +379,28 @@ function cyclereverse() {
   }
   redraw();
 }   
+
+function cycle_at_angle(angle) {
+  // F_projected = feet_[index].Fx() * cosangle + feet_[index].Fy() * sinangle;
+  var highF = 0.0;
+  var F;
+  var A = -1;
+  var cosangle = Math.cos(angle);
+  var sinangle = Math.sin(angle);
+  for (var f, i = 0; f = g_feet[i]; ++i) {
+    F = f.Fx * cosangle + f.Fy * sinangle;
+    if (F > highF) {
+      highF = F;
+      A = i;
+    }
+  }
+  F = -140;
+  if (highF > 0 ) {
+    if (can_lift(A)) {
+      move_to_force(A, F*cosangle, F*sinangle);
+    }
+  }
+}
 
 //------------------------------------------------------------------------------
 //                                                                      CAN LIFT
@@ -442,7 +466,7 @@ function start() {
 //------------------------------- global stuff ---------------------------------
 var cv, ctx;
 var scale = 0.75;
-var feetd = Math.floor((3.8+7.35-1)*20)*scale;
+var feetd = Math.floor((3.8+7.35)*20)*scale;
 var ydiff = 20*scale;
 var g_feet = [
   {"x":feetd+ydiff, "y":feetd, "Fx":0, "Fy":0},
