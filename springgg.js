@@ -305,6 +305,38 @@ function keyboard(ev) {
   redraw();
 }
 
+// -----------------------------------------------------------------------------
+//                                                                 MOVE TO FORCE
+// -----------------------------------------------------------------------------
+function move_to_force(foot_index, Fx, Fy) {
+  // want leg at target force Fx, Fy, likely somehting as -140, 0 for 
+  // forwards motion
+  var dx, dy, d; 
+  var K = 0.1;
+  var max_iter = 100; 
+  var max_err = 1.0;
+  for (var i = 0; i < max_iter; ++i) {
+    dx = Fx - g_feet[foot_index].Fx;
+    dy = Fy - g_feet[foot_index].Fy;
+    console.log("i: " + i);
+    console.log("dx: " + dx);
+    console.log("dy: " + dx);
+    // if we're close enough, break
+    if (Math.abs(dx) < 0.1 && Math.abs(dy) < 0.1) {
+      console.log("move to force done, i = ")
+      console.log(i)
+      redraw();
+      break;
+    } else {
+      // move in direction opposite of delta by K * d
+      d = Math.sqrt(dx*dx + dy*dy);
+      g_feet[foot_index].x -= dx * K;
+      g_feet[foot_index].y -= dy * K;
+      sum_forces()
+    }
+  }
+}
+
 //------------------------------------------------------------------------------
 //                                                                         CYCLE
 //------------------------------------------------------------------------------
@@ -318,13 +350,9 @@ function cycle() {
       A = i;
     }
   }
-  trace(highF);
   if (highF > 0) {
     if (can_lift(A)) {
-      while (g_feet[A].Fx > -140) {
-        g_feet[A].x += g_gridsize;
-        sum_forces();
-      }
+      move_to_force(A, -140, 0);
     } else {
       // ... do we even need this?
     }
@@ -344,10 +372,7 @@ function cyclereverse() {
   }
   if (lowF < 0) {
     if (can_lift(A)) {
-      while (g_feet[A].Fx < 140) {
-        g_feet[A].x -= g_gridsize;
-        sum_forces();
-      }
+      move_to_force(A, 140, 0);
     } 
   }
   redraw();
@@ -416,23 +441,24 @@ function start() {
 
 //------------------------------- global stuff ---------------------------------
 var cv, ctx;
-var feetd = Math.floor((3.8+7.35-1)*20);
+var scale = 0.75;
+var feetd = Math.floor((3.8+7.35-1)*20)*scale;
+var ydiff = 20*scale;
 var g_feet = [
-  {"x":feetd+20, "y":feetd, "Fx":0, "Fy":0},
-  {"x":-feetd-20, "y":feetd, "Fx":0, "Fy":0},
-  {"x":-feetd-20, "y":-feetd, "Fx":0, "Fy":0},
-  {"x":feetd+20, "y":-feetd, "Fx":0, "Fy":0}];
+  {"x":feetd+ydiff, "y":feetd, "Fx":0, "Fy":0},
+  {"x":-feetd-ydiff, "y":feetd, "Fx":0, "Fy":0},
+  {"x":-feetd-ydiff, "y":-feetd, "Fx":0, "Fy":0},
+  {"x":feetd+ydiff, "y":-feetd, "Fx":0, "Fy":0}];
 var g_com = {"x":0, "y":0, "Fx":0, "Fy":0};
 // flipped x,y bodysizes for now
-var bodysizey = 76;
-var bodysizex = 116;
-var ras = 260;
+var bodysizey = 76*scale;
+var bodysizex = 116*scale;
 var g_km = [
   // 0..3 are the leg connection points to the body
-  {"x":0, "y":0, "Fx":0, "Fy":0, "dx":feetd+20, "dy":feetd},
-  {"x":0, "y":0, "Fx":0, "Fy":0, "dx":-feetd-20, "dy":feetd},
-  {"x":0, "y":0, "Fx":0, "Fy":0, "dx":-feetd-20, "dy":-feetd},
-  {"x":0, "y":0, "Fx":0, "Fy":0, "dx":feetd+20, "dy":-feetd},
+  {"x":0, "y":0, "Fx":0, "Fy":0, "dx":feetd+ydiff, "dy":feetd},
+  {"x":0, "y":0, "Fx":0, "Fy":0, "dx":-feetd-ydiff, "dy":feetd},
+  {"x":0, "y":0, "Fx":0, "Fy":0, "dx":-feetd-ydiff, "dy":-feetd},
+  {"x":0, "y":0, "Fx":0, "Fy":0, "dx":feetd+ydiff, "dy":-feetd},
   {"x":0, "y":0, "Fx":0, "Fy":0, "dx":bodysizex, "dy":bodysizey},
   {"x":0, "y":0, "Fx":0, "Fy":0, "dx":-bodysizex, "dy":bodysizey},
   {"x":0, "y":0, "Fx":0, "Fy":0, "dx":-bodysizex, "dy":-bodysizey},
