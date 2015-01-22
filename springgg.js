@@ -295,9 +295,11 @@ function keyboard(ev) {
     g_com.x -= g_gridsize;
     sum_forces();
   } else if (ev.keyCode == 98 || ev.key == 'b') { // b
-    cycle();
+    cycle_at_angle(0, -140);
   } else if (ev.keyCode == 66 || ev.key == 'B') {
-    cyclereverse();
+    cycle_at_angle(0, -71);
+  } else if (ev.keyCode == 110 || ev.key == 'n') {
+    move_to_force(g_com, -100, 0);
   } else if (ev.keyCode == 122 || ev.key == 'z') {
     for (var s, i = 0; s = g_springs[i]; ++i) { zero_force(s); }
     sum_forces();
@@ -308,7 +310,7 @@ function keyboard(ev) {
 // -----------------------------------------------------------------------------
 //                                                                 MOVE TO FORCE
 // -----------------------------------------------------------------------------
-function move_to_force(foot_index, Fx, Fy) {
+function move_to_force(entity, Fx, Fy) {
   // want leg at target force Fx, Fy, likely somehting as -140, 0 for 
   // forwards motion
   var dx, dy, d; 
@@ -316,8 +318,8 @@ function move_to_force(foot_index, Fx, Fy) {
   var max_iter = 100; 
   var max_err = 1.0;
   for (var i = 0; i < max_iter; ++i) {
-    dx = Fx - g_feet[foot_index].Fx;
-    dy = Fy - g_feet[foot_index].Fy;
+    dx = Fx - entity.Fx;
+    dy = Fy - entity.Fy;
     console.log("i: " + i);
     console.log("dx: " + dx);
     console.log("dy: " + dx);
@@ -330,13 +332,13 @@ function move_to_force(foot_index, Fx, Fy) {
     } else {
       // move in direction opposite of delta by K * d
       d = Math.sqrt(dx*dx + dy*dy);
-      g_feet[foot_index].x -= dx * K;
-      g_feet[foot_index].y -= dy * K;
+      entity.x -= dx * K;
+      entity.y -= dy * K;
       sum_forces()
     }
   }
-  g_feet[foot_index].x = round_to_gridsize(g_feet[foot_index].x);
-  g_feet[foot_index].y = round_to_gridsize(g_feet[foot_index].y);
+  entity.x = round_to_gridsize(entity.x);
+  entity.y = round_to_gridsize(entity.y);
 }
 
 //------------------------------------------------------------------------------
@@ -354,7 +356,7 @@ function cycle() {
   }
   if (highF > 0) {
     if (can_lift(A)) {
-      move_to_force(A, -140, 0);
+      move_to_force(g_feet[A], -140, 0);
     } else {
       // ... do we even need this?
     }
@@ -374,13 +376,13 @@ function cyclereverse() {
   }
   if (lowF < 0) {
     if (can_lift(A)) {
-      move_to_force(A, 140, 0);
+      move_to_force(g_feet[A], 140, 0);
     } 
   }
   redraw();
 }   
 
-function cycle_at_angle(angle) {
+function cycle_at_angle(angle, force) {
   // F_projected = feet_[index].Fx() * cosangle + feet_[index].Fy() * sinangle;
   var highF = 0.0;
   var F;
@@ -394,10 +396,10 @@ function cycle_at_angle(angle) {
       A = i;
     }
   }
-  F = -140;
+  F = force;
   if (highF > 0 ) {
     if (can_lift(A)) {
-      move_to_force(A, F*cosangle, F*sinangle);
+      move_to_force(g_feet[A], F*cosangle, F*sinangle);
     }
   }
 }
